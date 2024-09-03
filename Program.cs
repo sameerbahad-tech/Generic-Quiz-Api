@@ -1,7 +1,9 @@
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
+using Quiz_Api.ExtensionMethod;
 using Quiz_Api.Models;
+using System.Configuration;
 
 namespace Quiz_Api
 {
@@ -11,37 +13,21 @@ namespace Quiz_Api
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
-
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            SwaggerExtensions.AddSwaggerExplorer(builder.Services);
             builder.Services.AddCors();
-            builder.Services.AddDbContext<QuizDbContext>(options =>
-            options.UseSqlServer(builder.Configuration.GetConnectionString("DevConnection")));
+            
+            AppConfigExtension.AddAppConfig(builder.Services, builder.Configuration);
+
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
+            AppConfigExtension.ConfigureCORS(app,builder.Configuration);
+            
 
-            app.UseCors(options => 
-            options.WithOrigins("http://localhost:3000")
-            .AllowAnyHeader()
-            .AllowAnyMethod());
-
-
-            app.UseStaticFiles(new StaticFileOptions
-            {
-                FileProvider=new PhysicalFileProvider(
-                    Path.Combine(builder.Environment.ContentRootPath,"Images")),
-                RequestPath="/Images"
-            });
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
-
+            app.SeedInMemoryDatabase(builder.Configuration);
+            StaticFileExtension.ConfigureStaticFiles(app, builder.Environment.ContentRootPath);
+            SwaggerExtensions.ConfigureSwaggerExplorer(app);
+            
             app.UseHttpsRedirection();
 
             app.UseAuthorization();
